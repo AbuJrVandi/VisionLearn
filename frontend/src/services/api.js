@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || "https://visionlearn.onrender.com";
+const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? "https://visionlearn.onrender.com" : "/api");
 
 async function request(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;
