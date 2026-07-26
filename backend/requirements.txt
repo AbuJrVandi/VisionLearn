@@ -1,0 +1,13 @@
+fastapi==0.139.0
+uvicorn[standard]==0.51.0
+python-multipart==0.0.32
+pydantic-settings==2.7.1
+numpy==2.2.3
+Pillow==11.1.0
+pytesseract==0.3.13
+gunicorn==23.0.0
+httpx==0.28.1
+aiosqlite==0.22.1
+edge-tts==7.2.8
+PyMuPDF==1.28.0
+python-docx==1.1.2
