@@ -40,13 +40,7 @@ class Settings(BaseSettings):
         "symbols like asterisks will be spoken as 'star' which sounds unnatural."
     )
 
-    CORS_ORIGINS: list[str] = [
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "https://visionlearn.vercel.app",
-        "https://visionlearn-backend.onrender.com",
-    ]
+    CORS_ORIGINS: list[str] = ["*"]
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
