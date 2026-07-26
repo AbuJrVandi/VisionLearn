@@ -16,28 +16,31 @@ CONFIDENCE_THRESHOLD = 55
 
 
 def _otsu_threshold(arr: np.ndarray) -> int:
-    hist, _ = np.histogram(arr, bins=256, range=(0, 256))
-    total = arr.size
-    if total == 0:
+    try:
+        hist, _ = np.histogram(arr, bins=256, range=(0, 256))
+        total = arr.size
+        if total == 0 or hist.size != 256:
+            return 128
+        sum_total = float(np.dot(hist, np.arange(256)))
+        sum_b, w_b = 0.0, 0
+        best_thresh, best_var = 0, 0.0
+        for t in range(256):
+            w_b += hist[t]
+            if w_b == 0:
+                continue
+            w_f = total - w_b
+            if w_f == 0:
+                break
+            sum_b += t * hist[t]
+            mean_b = sum_b / w_b
+            mean_f = (sum_total - sum_b) / w_f
+            var = w_b * w_f * (mean_b - mean_f) ** 2
+            if var > best_var:
+                best_var = var
+                best_thresh = t
+        return best_thresh
+    except Exception:
         return 128
-    sum_total = float(np.dot(hist, np.arange(256)))
-    sum_b, w_b = 0.0, 0
-    best_thresh, best_var = 0, 0.0
-    for t in range(256):
-        w_b += hist[t]
-        if w_b == 0:
-            continue
-        w_f = total - w_b
-        if w_f == 0:
-            break
-        sum_b += t * hist[t]
-        mean_b = sum_b / w_b
-        mean_f = (sum_total - sum_b) / w_f
-        var = w_b * w_f * (mean_b - mean_f) ** 2
-        if var > best_var:
-            best_var = var
-            best_thresh = t
-    return best_thresh
 
 
 def _preprocess_variants(image: Image.Image) -> list[tuple[str, Image.Image]]:
@@ -51,8 +54,11 @@ def _preprocess_variants(image: Image.Image) -> list[tuple[str, Image.Image]]:
     variants.append(("original_gray", gray))
 
     denoised = gray.filter(ImageFilter.MedianFilter(size=3))
-    eq = ImageOps.equalize(denoised)
-    variants.append(("equalized", eq))
+    try:
+        eq = ImageOps.equalize(denoised)
+        variants.append(("equalized", eq))
+    except Exception:
+        pass
 
     sharp = gray.filter(ImageFilter.UnsharpMask(radius=1, percent=100, threshold=2))
     variants.append(("sharpened", sharp))
@@ -62,11 +68,14 @@ def _preprocess_variants(image: Image.Image) -> list[tuple[str, Image.Image]]:
     otsu = Image.fromarray((arr > thresh).astype(np.uint8) * 255, mode="L")
     variants.append(("otsu", otsu))
 
-    remapped = Image.fromarray(arr, mode="L")
-    inv = ImageOps.invert(remapped)
-    inv_thresh = _otsu_threshold(np.array(inv, dtype=np.uint8))
-    inv_bin = Image.fromarray((np.array(inv, dtype=np.uint8) > inv_thresh).astype(np.uint8) * 255, mode="L")
-    variants.append(("inverted_otsu", inv_bin))
+    try:
+        remapped = Image.fromarray(arr, mode="L")
+        inv = ImageOps.invert(remapped)
+        inv_thresh = _otsu_threshold(np.array(inv, dtype=np.uint8))
+        inv_bin = Image.fromarray((np.array(inv, dtype=np.uint8) > inv_thresh).astype(np.uint8) * 255, mode="L")
+        variants.append(("inverted_otsu", inv_bin))
+    except Exception:
+        pass
 
     return variants
 
