@@ -146,7 +146,24 @@ def _run_tesseract(image: Image.Image, psm: int) -> dict | None:
         return None
 
 
+def _tesseract_available() -> bool:
+    try:
+        pytesseract.get_tesseract_version()
+        return True
+    except Exception:
+        return False
+
+
 def extract_text_from_image(image_bytes: bytes, filename: str = "") -> dict:
+    if not _tesseract_available():
+        return {
+            "text": "", "confidence": 0, "word_count": 0,
+            "character_count": 0, "filename": filename,
+            "success": False,
+            "error": "Tesseract OCR is not installed on this server. "
+                     "OCR works when running the app locally with Tesseract installed.",
+        }
+
     try:
         image = Image.open(io.BytesIO(image_bytes))
         variants = _preprocess_variants(image)
