@@ -53,7 +53,13 @@ export default function ChatTutorPage() {
       setSessionId(data.session_id);
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: data.response, provider: data.provider },
+        {
+          role: "assistant",
+          content: data.response,
+          provider: data.provider,
+          knowledgeMode: data.knowledge_mode,
+          knowledgeSources: data.knowledge_sources || [],
+        },
       ]);
     } catch {
       setMessages((prev) => [
@@ -99,7 +105,8 @@ export default function ChatTutorPage() {
         </button>
       </div>
       <p className="page-subtitle">
-        Chat with an AI tutor for help with any school subject.
+        Chat with an AI tutor for help with any school subject. Upload lessons to the
+        Library to use them as a free online knowledge base.
       </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -135,7 +142,8 @@ export default function ChatTutorPage() {
                     Start a conversation
                   </p>
                   <p className="text-sm">
-                    Ask me anything about your school subjects!
+                    Ask me anything about your school subjects. Materials in the
+                    Document Library are used as a free online knowledge base.
                   </p>
                 </div>
               )}
@@ -154,8 +162,26 @@ export default function ChatTutorPage() {
                   >
                     <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                     {msg.role === "assistant" && msg.provider && (
-                      <p className="text-xs mt-2 opacity-50">via {msg.provider}</p>
+                      <p className="text-xs mt-2 opacity-50">
+                        via {msg.provider}
+                        {msg.knowledgeMode === "online_library_rag" ||
+                        msg.knowledgeMode === "online_library_extractive"
+                          ? " · online library knowledge"
+                          : msg.knowledgeMode === "offline_curriculum"
+                            ? " · offline curriculum"
+                            : ""}
+                      </p>
                     )}
+                    {msg.role === "assistant" &&
+                      msg.knowledgeSources &&
+                      msg.knowledgeSources.length > 0 && (
+                        <p className="text-xs mt-1 opacity-70" aria-label="Knowledge sources used">
+                          Sources:{" "}
+                          {msg.knowledgeSources
+                            .map((s) => s.title || "Document")
+                            .join("; ")}
+                        </p>
+                      )}
                     {msg.role === "assistant" && (
                       <button
                         onClick={() =>

@@ -45,10 +45,12 @@ async def send_message(request: ChatRequest):
         )
         await db.commit()
 
+        # Free online knowledge base: search Document Library (SQLite) then tutor
         ai_result = await chat_completion(
             user_message=request.message,
             conversation_history=history,
             subject=request.subject,
+            db=db,
         )
 
         await db.execute(
@@ -57,7 +59,11 @@ async def send_message(request: ChatRequest):
         )
         await db.commit()
 
-        await db.execute("INSERT INTO usage_logs (action, detail) VALUES (?, ?)", ("chat", request.subject))
+        mode = ai_result.get("knowledge_mode", "")
+        await db.execute(
+            "INSERT INTO usage_logs (action, detail) VALUES (?, ?)",
+            ("chat", f"{request.subject}|{mode}"),
+        )
         await db.commit()
 
         return {
@@ -65,6 +71,8 @@ async def send_message(request: ChatRequest):
             "response": ai_result["text"],
             "provider": ai_result.get("provider", "unknown"),
             "model": ai_result.get("model", "unknown"),
+            "knowledge_mode": ai_result.get("knowledge_mode", "unknown"),
+            "knowledge_sources": ai_result.get("knowledge_sources", []),
         }
 
     finally:

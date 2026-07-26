@@ -23,7 +23,7 @@ Ask questions using your voice and receive spoken answers. The assistant uses br
 Photograph or upload textbook pages, notes, or worksheets. The system applies multi-strategy OCR preprocessing (adaptive thresholding, sharpening, Otsu, inversion) and multi-PSM fallback to extract text accurately from low-quality images.
 
 ### 🤖 AI Chat Tutor
-Get detailed, curriculum-aligned explanations across five subjects — Mathematics, Science, English, Social Studies, and Vocational Studies. The tutor checks an extensive offline knowledge base first, then falls back to AI APIs (Gemini / Pollinations) when needed.
+Get detailed, curriculum-aligned explanations across five subjects — Mathematics, Science, English, Social Studies, and Vocational Studies. The tutor checks an extensive offline knowledge base first, then searches your **free online knowledge base** (Document Library materials stored in SQLite), grounds Gemini/Pollinations on those passages, and falls back cleanly if APIs are unavailable.
 
 ### 📚 Document Library
 Upload, organise, search, and listen to learning materials. Supports PDF, DOCX, TXT, Markdown, and scanned documents. Each document is automatically categorised by subject.
@@ -55,19 +55,21 @@ Track study activity, chat history, document usage, and daily/hourly learning pa
 │    FastAPI · SQLite (aiosqlite) · Gunicorn + Uvicorn Workers   │
 ├──────────┬──────────┬──────────┬──────────┬────────────────────┤
 │   OCR    │   TTS    │   STT    │  Chat    │  Knowledge Base    │
-│Tesseract │Edge TTS  │Web Speech│Gemini /  │400+ curriculum     │
-│Multi-    │AriaNeural│API +     │Pollina-  │entries across 5    │
-│strategy  │voice     │fallback  │tions /   │subjects (offline   │
-│preproces-│(no SSML) │          │Offline   │fallback)           │
-│sing      │          │          │Knowledge │                    │
+│Tesseract │Edge TTS  │Web Speech│Gemini /  │Offline curriculum  │
+│Multi-    │AriaNeural│API +     │Pollina-  │+ free online RAG   │
+│strategy  │voice     │fallback  │tions +   │over Document       │
+│preproces-│(no SSML) │          │Library   │Library (SQLite)    │
+│sing      │          │          │grounding │                    │
 └──────────┴──────────┴──────────┴──────────┴────────────────────┘
 ```
 
 **Data Flow:**
 1. User speaks or types a question → Frontend sends to `/api/chat/send`
 2. Backend checks offline Knowledge Base first (instant, no API needed)
-3. If no match → tries Pollinations.ai → Gemini API in sequence
-4. Response returned → Frontend displays text + plays via neural TTS
+3. If no match → **free online KB**: search Document Library (`extracted_text`) and inject top passages
+4. Tries Gemini (if key set) / Pollinations with grounded context
+5. If APIs fail but library hits exist → extractive answer from library text
+6. Response returned → Frontend displays text, sources, and plays via neural TTS
 
 ---
 
