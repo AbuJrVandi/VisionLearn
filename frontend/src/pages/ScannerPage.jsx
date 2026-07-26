@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScanText, Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import { ScanText, Loader2, AlertCircle, CheckCircle, Globe } from "lucide-react";
 import FileUpload from "../components/FileUpload";
 import TTSPlayer from "../components/TTSPlayer";
 import { processOCR } from "../services/api";
@@ -8,17 +8,48 @@ export default function ScannerPage() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [usingLocalOCR, setUsingLocalOCR] = useState(false);
+
+  const runClientOCR = async (file) => {
+    const Tesseract = await import("tesseract.js");
+    const img = URL.createObjectURL(file);
+    try {
+      const { data } = await Tesseract.recognize(img, "eng", {
+        logger: () => {},
+      });
+      URL.revokeObjectURL(img);
+      if (data.text.trim()) {
+        setResult({
+          text: data.text,
+          confidence: Math.round(data.confidence),
+          word_count: data.text.split(/\s+/).filter(Boolean).length,
+          character_count: data.text.length,
+          success: true,
+        });
+      } else {
+        setError("No text could be detected. Try a clearer image.");
+      }
+    } catch (e) {
+      URL.revokeObjectURL(img);
+      setError("Client-side OCR failed: " + e.message);
+    }
+  };
 
   const handleFileSelect = async (file) => {
     if (!file) return;
     setLoading(true);
     setError(null);
     setResult(null);
+    setUsingLocalOCR(false);
 
     try {
       const data = await processOCR(file);
-      setResult(data);
-      if (!data.success) {
+      if (data.success) {
+        setResult(data);
+      } else if (data.error && data.error.includes("not installed")) {
+        setUsingLocalOCR(true);
+        await runClientOCR(file);
+      } else {
         setError(data.error || "Could not extract text from this image.");
       }
     } catch (err) {
@@ -59,7 +90,20 @@ export default function ScannerPage() {
           {loading && (
             <div className="card flex items-center gap-3" role="status">
               <Loader2 className="w-6 h-6 text-blue-600 dark:text-blue-400 animate-spin" />
-              <span className="text-slate-600 dark:text-slate-300">Processing image...</span>
+              <span className="text-slate-600 dark:text-slate-300">
+                {usingLocalOCR ? "Processing in browser..." : "Processing image..."}
+              </span>
+            </div>
+          )}
+
+          {usingLocalOCR && !loading && (
+            <div className="card bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 flex items-start gap-3">
+              <Globe className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  Processed in your browser using client-side OCR. No data is sent to the server.
+                </p>
+              </div>
             </div>
           )}
 
